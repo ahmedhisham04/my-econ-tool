@@ -1,171 +1,117 @@
-import warnings, io
-warnings.filterwarnings("ignore")
-
-import numpy as np
-import pandas as pd
 import streamlit as st
-import plotly.graph_objects as go
-from statsmodels.tsa.stattools import adfuller
-from statsmodels.regression.linear_model import OLS
-from statsmodels.tsa.arima.model import ARIMA
-from statsmodels.tools.tools import add_constant
+import pandas as pd
+import numpy as np
 
 # ─────────────────────────────────────────────────────────────────
-# NEXUS DESIGN SYSTEM (Professional, Neutral, High-End)
+# NEXUS PROFESSIONAL DESIGN SYSTEM
 # ─────────────────────────────────────────────────────────────────
-st.set_page_config(page_title="Nexus Macro-Financial Suite", layout="wide")
+st.set_page_config(page_title="Nexus Econometrics", layout="wide")
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
     :root {
-        --nexus-bg: #0F172A;
-        --nexus-card: #1E293B;
-        --nexus-accent: #3B82F6;
-        --nexus-border: #334155;
-        --nexus-text: #F8FAFC;
+        --nexus-bg: #F8FAFC;
+        --nexus-sidebar: #0F172A;
+        --nexus-accent: #2563EB;
+        --nexus-text: #1E293B;
+        --nexus-border: #E2E8F0;
     }
 
     .stApp { background-color: var(--nexus-bg); color: var(--nexus-text); font-family: 'Inter', sans-serif; }
 
-    /* Professional Header */
-    .header-bar {
-        background-color: var(--nexus-card);
-        padding: 1.5rem 2rem;
+    /* Clean Sidebar */
+    [data-testid="stSidebar"] { background-color: var(--nexus-sidebar) !important; border-right: 1px solid var(--nexus-border); }
+    [data-testid="stSidebar"] * { color: #94A3B8 !important; }
+
+    /* The "First Sight" Header */
+    .hero-container {
+        padding: 2rem 0;
         border-bottom: 1px solid var(--nexus-border);
         margin-bottom: 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
     }
-    .brand-name { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: var(--nexus-text); }
-    .status-badge { font-family: 'Roboto Mono', monospace; font-size: 11px; padding: 4px 12px; background: #064E3B; color: #34D399; border-radius: 2px; }
+    .hero-title { font-size: 28px; font-weight: 600; color: #0F172A; letter-spacing: -0.5px; }
+    .hero-subtitle { font-size: 14px; color: #64748B; margin-top: 5px; }
 
-    /* The Setup Wizard Box */
-    .setup-box {
-        background: var(--nexus-card);
+    /* Professional Variable Cards */
+    .data-card {
+        background: white;
         border: 1px solid var(--nexus-border);
-        padding: 2rem;
+        padding: 1.5rem;
         border-radius: 4px;
-        margin-bottom: 2rem;
+        transition: transform 0.2s ease;
     }
-
-    /* Tabs Customization */
-    .stTabs [data-baseweb="tab-list"] { background: transparent; gap: 30px; }
-    .stTabs [data-baseweb="tab"] { font-family: 'Roboto Mono', monospace; font-size: 13px; color: #94A3B8 !important; }
-    .stTabs [aria-selected="true"] { color: var(--nexus-accent) !important; border-bottom: 2px solid var(--nexus-accent) !important; }
-
-    /* Tables & Frames */
-    .stDataFrame { border: 1px solid var(--nexus-border) !important; }
+    .data-card:hover { border-color: var(--nexus-accent); }
+    .card-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; color: #94A3B8; }
+    .card-value { font-size: 22px; font-weight: 600; color: #0F172A; }
 </style>
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────
-# TOP NAVIGATION BAR
+# COMPONENT 1: THE INTELLIGENCE HEADER
 # ─────────────────────────────────────────────────────────────────
 st.markdown("""
-<div class="header-bar">
-    <div class="brand-name">NEXUS ECONOMETRIC SUITE <span style='font-weight:300; opacity:0.6'>v2.4</span></div>
-    <div class="status-badge">RESEARCH KERNEL ACTIVE</div>
+<div class="hero-container">
+    <div class="hero-title">Nexus Econometrics</div>
+    <div class="hero-subtitle">Advanced Research Environment • Data Integrity Engine Active</div>
 </div>
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────
-# INITIALIZATION & CLEANING
+# COMPONENT 2: THE INGESTION SIDEBAR
 # ─────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### DATA INGESTION")
-    uploaded = st.file_uploader("Upload Raw Data (CSV/XLSX)", type=["csv", "xlsx"])
+    st.markdown("<div style='padding: 1rem 0;'>[ NAVIGATION ]</div>", unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("LOAD RESEARCH DATASET", type=["csv", "xlsx"])
     st.markdown("---")
-    sig_level = st.selectbox("Confidence Level", [0.01, 0.05, 0.10], index=1)
+    st.markdown("<div style='font-size: 11px;'>SYSTEM STATUS: OPERATIONAL</div>", unsafe_allow_html=True)
 
-if uploaded:
-    if uploaded.name.endswith('.csv'):
-        df_raw = pd.read_csv(uploaded)
+# ─────────────────────────────────────────────────────────────────
+# COMPONENT 3: THE "FIRST SIGHT" DATA DASHBOARD
+# ─────────────────────────────────────────────────────────────────
+if uploaded_file:
+    # Logic: Read and immediately purge ghost rows
+    if uploaded_file.name.endswith('.csv'):
+        df = pd.read_csv(uploaded_file)
     else:
-        df_raw = pd.read_excel(uploaded)
-
-    # STEP 1: KILL THE GHOST ROWS IMMEDIATELY
-    df_raw = df_raw.dropna(how='all').dropna(axis=1, how='all')
-
-    # STEP 2: THE CONFIGURATION WIZARD
-    st.markdown("### SYSTEM INITIALIZATION: COLUMN MAPPING")
+        df = pd.read_excel(uploaded_file)
     
-    with st.container():
-        st.markdown("<div class='setup-box'>", unsafe_allow_html=True)
-        c1, c2 = st.columns(2)
-        with c1:
-            time_col = st.selectbox("Identify Temporal Index (Year)", df_raw.columns)
-        with c2:
-            freq = st.selectbox("Analysis Frequency", ["Annual", "Quarterly", "Monthly"])
-        
-        # User explicitly chooses which numeric variables to include
-        potential_vars = [c for c in df_raw.columns if c != time_col]
-        selected_vars = st.multiselect("Select Variables for Analysis", potential_vars, default=potential_vars[:3])
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # STEP 3: STRICT DATA ENFORCEMENT
-    # This prevents the "3,000 observations" error
-    df = df_raw.copy()
-    df[time_col] = pd.to_numeric(df[time_col], errors='coerce')
-    df = df.dropna(subset=[time_col]) # Deletes any row where the Year isn't a number
-    df = df.sort_values(by=time_col)
+    # THE GHOST KILLER: Drops rows that are purely empty
+    df = df.dropna(how='all').dropna(axis=1, how='all')
     
-    # Final cleanup of selected variables
-    for v in selected_vars:
-        df[v] = pd.to_numeric(df[v], errors='coerce')
-    df = df.dropna(subset=selected_vars).reset_index(drop=True)
-    df = df.set_index(time_col)
+    # DETECT TEMPORAL AXIS: Finding the "Year" column
+    potential_time = [c for c in df.columns if any(k in c.lower() for k in ['year', 'date', 'time', 'period'])]
+    
+    # RENDER THE HUB
+    st.markdown("### DATA INTEGRITY PROFILE")
+    
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.markdown(f"""<div class="data-card"><div class="card-label">Sample Size</div><div class="card-value">{len(df)}</div></div>""", unsafe_allow_html=True)
+    with c2:
+        # Strict logic: Find only truly numeric data columns
+        num_vars = df.select_dtypes(include=[np.number]).columns.tolist()
+        st.markdown(f"""<div class="data-card"><div class="card-label">Variables</div><div class="card-value">{len(num_vars)}</div></div>""", unsafe_allow_html=True)
+    with c3:
+        missing_cells = df.isnull().sum().sum()
+        st.markdown(f"""<div class="data-card"><div class="card-label">Data Gaps</div><div class="card-value">{missing_cells}</div></div>""", unsafe_allow_html=True)
+    with c4:
+        freq_detected = "Annual" if len(df) < 100 else "High-Freq"
+        st.markdown(f"""<div class="data-card"><div class="card-label">Est. Frequency</div><div class="card-value">{freq_detected}</div></div>""", unsafe_allow_html=True)
 
-    # ─────────────────────────────────────────────────────────────────
-    # ANALYTICS WORKBENCH
-    # ─────────────────────────────────────────────────────────────────
-    tab1, tab2, tab3, tab4 = st.tabs(["[ DATA PREVIEW ]", "[ UNIT ROOT ]", "[ REGRESSION ]", "[ PROJECTION ]"])
-
-    with tab1:
-        st.markdown(f"#### CORE DATASET: {len(df)} OBSERVATIONS DETECTED")
-        st.dataframe(df[selected_vars].head(10), use_container_width=True)
-        
-        st.markdown("#### TEMPORAL DISTRIBUTION")
-        fig = go.Figure()
-        for v in selected_vars:
-            fig.add_trace(go.Scatter(x=df.index, y=df[v], name=v, line=dict(width=2)))
-        fig.update_layout(template="plotly_dark", font_family="Roboto Mono", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig, use_container_width=True)
-
-    with tab2:
-        st.markdown("#### AUGMENTED DICKEY-FULLER ANALYSIS")
-        ur_target = st.selectbox("Select Target Variable", selected_vars)
-        if st.button("EXECUTE TEST"):
-            res = adfuller(df[ur_target].dropna())
-            
-            # Professional Results Display
-            r1, r2, r3 = st.columns(3)
-            r1.metric("ADF STATISTIC", f"{res[0]:.4f}")
-            r2.metric("P-VALUE", f"{res[1]:.4f}")
-            r3.metric("STATUS", "STATIONARY" if res[1] < sig_level else "NON-STATIONARY")
-
-    with tab3:
-        st.markdown("#### OLS ESTIMATION")
-        y = st.selectbox("Dependent (Y)", selected_vars)
-        x = st.multiselect("Exogenous (X)", [v for v in selected_vars if v != y])
-        
-        if st.button("RUN ESTIMATION") and x:
-            model = OLS(df[y], add_constant(df[x])).fit()
-            st.code(model.summary().as_text(), language='text')
-
-    with tab4:
-        st.markdown("#### ARIMA PROJECTION")
-        f_target = st.selectbox("Forecast Variable", selected_vars, key="f")
-        h = st.slider("Horizon", 1, 10, 5)
-        
-        if st.button("GENERATE FORECAST"):
-            model = ARIMA(df[f_target], order=(1,1,1)).fit()
-            fc = model.forecast(steps=h)
-            st.markdown("##### FORECASTED VALUES")
-            st.table(pd.DataFrame({"Period": np.arange(1,h+1), "Value": fc}))
+    st.markdown("---")
+    st.markdown("### THE VARIABLE UNIVERSE")
+    st.write("Review your detected variables below before proceeding to analysis.")
+    st.dataframe(df.head(10), use_container_width=True)
 
 else:
-    st.markdown("<div style='text-align:center; padding-top:100px; color:#94A3B8'>INITIALIZING SYSTEM: PLEASE UPLOAD DATASET</div>", unsafe_allow_html=True)
+    # The "Invitation" State
+    st.markdown("""
+    <div style='background: white; border: 1px dashed #CBD5E1; padding: 4rem; text-align: center; border-radius: 4px;'>
+        <div style='color: #64748B; font-size: 14px; font-family: "IBM Plex Mono", monospace;'>
+            AWAITING DATA INPUT...<br>
+            DRAG AND DROP CSV OR XLSX TO INITIALIZE WORKBENCH
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
