@@ -29,14 +29,11 @@ st.markdown("""
         background: white; border: 1px solid var(--nexus-border);
         padding: 1.5rem; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
-    .card-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; color: #94A3B8; margin-bottom: 8px; }
-    .card-value { font-size: 24px; font-weight: 600; color: #0F172A; }
     [data-testid="stSidebar"] { background-color: var(--nexus-sidebar) !important; }
     [data-testid="stSidebar"] * { color: #94A3B8 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# Navigation Header
 st.markdown("""
 <div style='padding: 1.5rem 0; border-bottom: 1px solid #E2E8F0; margin-bottom: 2rem;'>
     <div style='font-size: 20px; font-weight: 700; color: #0F172A;'>NEXUS <span style='font-weight:300; color:#64748B;'>ECONOMETRICS</span></div>
@@ -44,7 +41,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────
-# SESSION STATE INITIALIZATION (The "Memory" of the app)
+# PERSISTENCE LOGIC
 # ─────────────────────────────────────────────────────────────────
 if 'initialized' not in st.session_state:
     st.session_state['initialized'] = False
@@ -59,7 +56,7 @@ with st.sidebar:
     sig_level = st.selectbox("CONFIDENCE LEVEL (α)", [0.01, 0.05, 0.10], index=1)
     
     if st.session_state['initialized']:
-        if st.button("RESET ANALYSIS"):
+        if st.button("RESET KERNEL"):
             st.session_state['initialized'] = False
             st.rerun()
 
@@ -67,77 +64,68 @@ with st.sidebar:
 # MAIN WORKSPACE
 # ─────────────────────────────────────────────────────────────────
 if uploaded_file:
-    # Data Loading
+    # 0. Load and Aggressive Numeric Conversion
     if uploaded_file.name.endswith('.csv'):
         df_raw = pd.read_csv(uploaded_file)
     else:
         df_raw = pd.read_excel(uploaded_file)
     
-    # Aggressive Type-Casting (The Fix for GDP/FDI blindness)
     for col in df_raw.columns:
         df_raw[col] = pd.to_numeric(df_raw[col], errors='coerce')
 
-    # STEP 1 & 2: MAPPING
-    st.markdown("<div class='section-header'>Step 1 & 2: Data Anatomy & Mapping</div>", unsafe_allow_html=True)
+    # 1 & 2. MAPPING WIZARD
+    st.markdown("<div class='section-header'>Step 1 & 2: Anatomy & Mapping</div>", unsafe_allow_html=True)
     
     col_map, col_status = st.columns([2, 1])
 
     with col_map:
         time_idx = st.selectbox("Assign Temporal Anchor (Year)", options=df_raw.columns)
-        potential_vars = [c for c in df_raw.columns if c != time_idx]
         
-        # Real-time Cleaning Logic
+        # Filter Ghost Rows based on Year
         df = df_raw.dropna(subset=[time_idx]).copy()
         df = df[df[time_idx] > 1900].sort_values(by=time_idx)
         
+        potential_vars = [c for c in df.columns if c != time_idx]
         dep_var = st.selectbox("Assign Target Variable (Y)", options=potential_vars)
         indep_vars = st.multiselect("Assign Regressors (X)", options=[v for v in potential_vars if v != dep_var])
 
     with col_status:
         st.markdown("<br>", unsafe_allow_html=True)
+        # Check if user has selected everything
         if time_idx and dep_var and indep_vars and not df.empty:
-            t_min = int(df[time_idx].min())
-            t_max = int(df[time_idx].max())
-            
             st.markdown(f"""
             <div style='background: #F0FDF4; border: 1px solid #BBF7D0; padding: 1.5rem; border-radius: 4px;'>
                 <div style='color: #166534; font-size: 11px; font-weight: 600; font-family: IBM Plex Mono;'>[ SYSTEM READY ]</div>
-                <div style='color: #166534; font-size: 12px; margin-top:5px;'>
-                    Sample: {t_min} - {t_max}<br>
-                    Obs: {len(df)} Years
-                </div>
+                <div style='color: #166534; font-size: 12px; margin-top:5px;'>Range: {int(df[time_idx].min())}-{int(df[time_idx].max())}<br>Obs: {len(df)}</div>
             </div>
             """, unsafe_allow_html=True)
             
-            # This button now locks the state
+            # THE BUTTON
             if st.button("INITIALIZE RESEARCH KERNEL"):
                 st.session_state['initialized'] = True
         else:
+            # If any dropdown is missing, show this:
             st.markdown("""
             <div style='background: #FEFCE8; border: 1px solid #FEF08A; padding: 1.5rem; border-radius: 4px;'>
                 <div style='color: #854D0E; font-size: 11px; font-weight: 600; font-family: IBM Plex Mono;'>[ AWAITING MAP ]</div>
-                <div style='color: #854D0E; font-size: 12px; margin-top:5px;'>Assign variable roles to proceed.</div>
+                <div style='color: #854D0E; font-size: 12px; margin-top:5px;'>Map temporal and analysis variables to unlock.</div>
             </div>
             """, unsafe_allow_html=True)
 
-    # ── STEP 3: ANALYSIS KERNEL ──
-    # Using the session_state ensures this doesn't disappear
+    # 3. ANALYSIS KERNEL
     if st.session_state['initialized']:
-        st.markdown("<div class='section-header'>Step 3: Exploratory Intelligence Kernel</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>Step 3: Exploratory Intelligence</div>", unsafe_allow_html=True)
         
+        # Fixed tab naming
         tab_viz, tab_audit = st.tabs(["[ VISUAL CONVERGENCE ]", "[ STATIONARITY AUDIT ]"])
         
         with tab_viz:
             plot_vars = [dep_var] + indep_vars
             fig = px.line(df, x=time_idx, y=plot_vars, template="plotly_white")
-            fig.update_layout(
-                font_family="Inter", 
-                hovermode="x unified",
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-            )
+            fig.update_layout(font_family="Inter", hovermode="x unified")
             st.plotly_chart(fig, use_container_width=True)
 
-        with tab_health:
+        with tab_audit:
             st.markdown("#### Augmented Dickey-Fuller (ADF) Audit")
             for var in [dep_var] + indep_vars:
                 res = adfuller(df[var].dropna())
@@ -150,6 +138,5 @@ if uploaded_file:
                     <span style='font-size: 11px; color: gray;'>p-value: {res[1]:.4f} | Stat: {res[0]:.4f}</span>
                 </div>
                 """, unsafe_allow_html=True)
-
 else:
-    st.markdown("<div style='text-align:center; padding: 5rem; color: #94A3B8; font-family:IBM Plex Mono;'>AWAITING DATASET INPUT...</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; padding: 5rem; color: #94A3B8; font-family:IBM Plex Mono;'>AWAITING DATASET...</div>", unsafe_allow_html=True)
