@@ -115,3 +115,72 @@ else:
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────────────
+# COMPONENT 4: THE CONFIGURATION GATE (The "Second Sight")
+# ─────────────────────────────────────────────────────────────────
+# This section only appears after the "Ghost Killer" has verified the data
+if uploaded_file:
+    st.markdown("---")
+    st.markdown("### DATA ANATOMY WIZARD")
+    st.info("System requirement: Define the temporal and structural properties of the dataset to unlock analysis modules.")
+
+    with st.container():
+        # Using a specialized layout for "The Mapping Workspace"
+        col_map, col_info = st.columns([2, 1])
+
+        with col_map:
+            st.markdown("<div class='section-header'>Variable Mapping</div>", unsafe_allow_html=True)
+            
+            # 1. TEMPORAL ANCHOR
+            # We filter columns that look like dates/years to help the user
+            time_options = [c for c in df.columns]
+            time_idx = st.selectbox(
+                "Identify Temporal Anchor (Time Index)", 
+                options=time_options,
+                help="Select the column representing the chronological sequence (e.g., Year, Date)."
+            )
+
+            # 2. ANALYSIS ROLES
+            # We let the user assign roles. This mimics the "Equation Box" in EViews.
+            potential_vars = [c for c in df.columns if c != time_idx]
+            
+            dep_var = st.selectbox(
+                "Target Variable (Dependent - Y)",
+                options=potential_vars,
+                help="The primary variable you intend to explain or forecast."
+            )
+
+            indep_vars = st.multiselect(
+                "Regressors (Independent - X)",
+                options=[v for v in potential_vars if v != dep_var],
+                help="The explanatory variables for your econometric model."
+            )
+
+        with col_info:
+            st.markdown("<div class='section-header'>Structural Definition</div>", unsafe_allow_html=True)
+            
+            # Frequency selection - critical for ARIMA/VAR models later
+            data_freq = st.radio(
+                "Observation Frequency",
+                ["Annual", "Quarterly", "Monthly", "Daily"],
+                index=0
+            )
+
+            # A "Status Light" that changes as you fill out the wizard
+            if time_idx and dep_var and indep_vars:
+                st.success("✅ CONFIGURATION COMPLETE: ANALYSIS MODULES UNLOCKED")
+                ready_to_proceed = True
+            else:
+                st.warning("⚠️ CONFIGURATION PENDING: MAP VARIABLES TO PROCEED")
+                ready_to_proceed = False
+
+    # ─────────────────────────────────────────────────────────────────
+    # THE TRANSITION BUTTON
+    # ─────────────────────────────────────────────────────────────────
+    # Once configured, we provide a clean, high-contrast action button
+    if ready_to_proceed:
+        st.markdown("---")
+        if st.button("INITIALIZE ECONOMETRIC KERNEL"):
+            st.session_state['initialized'] = True
+            st.balloons() # A small touch of "success" for the user
