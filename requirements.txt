@@ -5,3 +5,5 @@ statsmodels
 plotly
 scipy
 openpyxl
+pmdarima
+matplotlib
