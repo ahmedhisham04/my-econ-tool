@@ -85,10 +85,10 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
     :root {
-        --nexus-bg: #F1F5F9;          /* Quartz Grey - Clean & Open */
-        --nexus-sidebar: #0F172A;      /* Midnight Navy - The Fingerprint */
-        --nexus-accent: #334155;       /* Steel Blue - Industrial */
-        --nexus-highlight: #2563EB;    /* Electric Blue - Action */
+        --nexus-bg: #E0E7FF;          /* Light "EViews" Blue Tint */
+        --nexus-sidebar: #0F172A;      /* Midnight Navy */
+        --nexus-accent: #334155;       
+        --nexus-highlight: #2563EB;    
         --nexus-text: #1E293B;
     }
 
@@ -99,51 +99,29 @@ st.markdown("""
         font-family: 'Inter', sans-serif; 
     }
 
-    /* Sidebar - The Power Center */
+    /* Sidebar - Midnight Navy */
     [data-testid="stSidebar"] { 
         background-color: var(--nexus-sidebar) !important; 
-        border-right: 1px solid #1E293B;
     }
     
-    /* Sidebar Text & Icons */
     [data-testid="stSidebar"] * { 
         color: #94A3B8 !important; 
         font-family: 'IBM Plex Mono', monospace;
     }
 
-    /* Tabs - Professional Navigation */
-    .stTabs [data-baseweb="tab-list"] { 
-        gap: 30px; 
-        border-bottom: 2px solid #CBD5E1; 
-        background: transparent;
-    }
-    .stTabs [data-baseweb="tab"] { 
-        font-family: 'IBM Plex Mono', monospace; 
-        font-size: 11px; 
-        font-weight: 500;
-        color: #64748B !important; 
-        padding: 10px 0;
-    }
-    .stTabs [aria-selected="true"] { 
-        color: var(--nexus-highlight) !important; 
-        border-bottom: 2px solid var(--nexus-highlight) !important; 
-    }
-
-    /* Industrial Cards */
+    /* Industrial Workspace Cards */
     .nexus-card { 
         background: white; 
-        border: 1px solid #E2E8F0; 
+        border: 1px solid #CBD5E1; 
         padding: 1.5rem; 
         border-radius: 2px; 
-        box-shadow: 4px 4px 0px 0px rgba(15, 23, 42, 0.05); /* Brutalist Shadow */
+        box-shadow: 4px 4px 0px 0px rgba(15, 23, 42, 0.1); 
         margin-bottom: 1rem; 
     }
 
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: var(--nexus-bg); }
-    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    /* Professional Tabs */
+    .stTabs [data-baseweb="tab-list"] { gap: 30px; }
+    .stTabs [data-baseweb="tab"] { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
 
 </style>
 """, unsafe_allow_html=True)
@@ -152,7 +130,7 @@ st.markdown("""
 # SIDEBAR: THE COMMAND CENTER
 # ─────────────────────────────────────────────────────────────────
 with st.sidebar:
-    # THE FINGERPRINT: Personalized Signature
+    # THE SIGNATURE
     st.markdown(f"""
     <div style='padding: 1rem 0; border-bottom: 1px solid #1E293B; margin-bottom: 2rem;'>
         <div style='font-size: 16px; font-weight: 700; color: #F8FAFC !important; letter-spacing: 1px;'>NEXUS KERNEL</div>
@@ -166,15 +144,8 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # We add a quick "Status" indicator
-    if st.session_state['initialized']:
-        st.markdown(f"""
-        <div style='background: #1E293B; padding: 10px; border-radius: 2px; border: 1px solid #334155;'>
-            <div style='font-size: 9px; color: #64748B;'>KERNEL STATUS:</div>
-            <div style='font-size: 11px; color: #10B981;'>ACTIVE INTERFACE</div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
+    if st.session_state.get('initialized', False):
+        st.markdown("<div style='font-size: 11px; color: #10B981;'>KERNEL ACTIVE</div>", unsafe_allow_html=True)
         if st.button("CLOSE WORKFILE", use_container_width=True):
             st.session_state['initialized'] = False
             st.rerun()
