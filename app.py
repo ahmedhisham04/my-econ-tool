@@ -23,7 +23,7 @@ if not st.session_state['authenticated']:
     with col_login:
         st.markdown("""
         <div style='text-align: center; padding: 2rem 0;'>
-            <h1 style='color: #0F172A; font-weight: 700; letter-spacing: -1px;'>NEXUS KERNEL</h1>
+            <h1 style='color: #0F172A; font-weight: 700; letter-spacing: -1px;'>NEXUS KERNEL by Ahmed Hisham</h1>
             <p style='color: #64748B; font-size: 14px;'>Professional Econometric Research Environment</p>
         </div>
         """, unsafe_allow_html=True)
