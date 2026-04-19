@@ -1,3 +1,55 @@
+# ─────────────────────────────────────────────────────────────────
+# COMPONENT 0: THE NEXUS GATEWAY (Login Page)
+# ─────────────────────────────────────────────────────────────────
+
+# Initialize identity state
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+
+if not st.session_state['authenticated']:
+    # Center the login card
+    _, col_login, _ = st.columns([1, 2, 1])
+    
+    with col_login:
+        st.markdown("""
+        <div style='text-align: center; padding: 2rem 0;'>
+            <h1 style='color: #0F172A; font-weight: 700; letter-spacing: -1px;'>NEXUS KERNEL</h1>
+            <p style='color: #64748B; font-size: 14px;'>Professional Econometric Research Environment</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        with st.container():
+            st.markdown("<div class='nexus-card'>", unsafe_allow_html=True)
+            
+            c_fn, c_ln = st.columns(2)
+            first_name = c_fn.text_input("First Name")
+            last_name = c_ln.text_input("Last Name")
+            
+            email = st.text_input("Email Address")
+            occupation = st.selectbox("Occupation", 
+                                    ["Economic Researcher", "Financial Analyst", "Graduate Student", "Academic Professor", "Data Scientist"])
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            if st.button("LAUNCH WORKBENCH", use_container_width=True):
+                if first_name and last_name and email:
+                    st.session_state['user_name'] = first_name
+                    st.session_state['user_role'] = occupation
+                    st.session_state['authenticated'] = True
+                    st.success(f"Welcome, {first_name}. Initializing system...")
+                    st.rerun()
+                else:
+                    st.error("Please provide credentials to access the Kernel.")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+    # Stop the app here if not authenticated
+    st.stop()
+
+# ─────────────────────────────────────────────────────────────────
+# THE REST OF YOUR CODE STARTS BELOW THIS LINE
+# ─────────────────────────────────────────────────────────────────
+# (Your Imports, CSS, and existing Steps 1-5 go here)
 import streamlit as st
 import pandas as pd
 import numpy as np
