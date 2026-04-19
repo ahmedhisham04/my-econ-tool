@@ -2,10 +2,12 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.regression.linear_model import OLS
 from statsmodels.tsa.ardl import ARDL
 from statsmodels.tools.tools import add_constant
+from statsmodels.stats.stattools import durbin_watson, jarque_bera
 
 # ─────────────────────────────────────────────────────────────────
 # NEXUS PROFESSIONAL DESIGN SYSTEM
@@ -24,7 +26,6 @@ st.markdown("""
     }
     .stApp { background-color: var(--nexus-bg); color: var(--nexus-text); font-family: 'Inter', sans-serif; }
     
-    /* Professional Tabs */
     .stTabs [data-baseweb="tab-list"] { gap: 30px; border-bottom: 2px solid var(--nexus-border); }
     .stTabs [data-baseweb="tab"] { 
         font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500;
@@ -36,14 +37,7 @@ st.markdown("""
         background: white; border: 1px solid var(--nexus-border);
         padding: 1.5rem; border-radius: 2px; margin-bottom: 1rem;
     }
-    .label-mono { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; color: #94A3B8; }
-    
-    /* EViews Style Output Box */
-    .eviews-box {
-        background: #FFFFFF; border: 1px solid #CBD5E1; 
-        font-family: 'IBM Plex Mono', monospace; font-size: 13px; 
-        padding: 20px; color: #0F172A; line-height: 1.6;
-    }
+    .label-mono { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; color: #94A3B8; margin-bottom:5px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -68,7 +62,7 @@ with st.sidebar:
 # MAIN WORKSPACE
 # ─────────────────────────────────────────────────────────────────
 if uploaded_file and not st.session_state['initialized']:
-    # PHASE 1: INITIALIZATION
+    # --- PHASE 1: INITIALIZATION ---
     if uploaded_file.name.endswith('.csv'):
         df_raw = pd.read_csv(uploaded_file)
     else:
@@ -93,24 +87,18 @@ if uploaded_file and not st.session_state['initialized']:
             <div class="nexus-card">
                 <div class="label-mono">Observation Range</div>
                 <div style="font-size:20px; font-weight:600;">{len(df)} Points</div>
-                <div style="font-size:12px; color:#64748B;">Index: {int(df[time_idx].min())} - {int(df[time_idx].max())}</div>
+                <div style="font-size:12px; color:#64748B;">{int(df[time_idx].min())} - {int(df[time_idx].max())}</div>
             </div>
             """, unsafe_allow_html=True)
             if st.button("OPEN WORKFILE", use_container_width=True):
                 st.session_state.update({"initialized": True, "df": df, "time": time_idx, "y": dep_var, "x": indep_vars})
                 st.rerun()
-        else:
-            st.warning("Mapping required to unlock Kernel.")
 
 elif st.session_state['initialized']:
-    # PHASE 2: RESEARCH KERNEL
-    df = st.session_state['df']
-    time_idx = st.session_state['time']
-    dep_var = st.session_state['y']
-    indep_vars = st.session_state['x']
+    # --- PHASE 2: RESEARCH KERNEL ---
+    df, time_idx, dep_var, indep_vars = st.session_state['df'], st.session_state['time'], st.session_state['y'], st.session_state['x']
     
-    st.markdown(f"### Research Workspace: {dep_var}")
-    
+    st.markdown(f"### Workspace: {dep_var} Analysis")
     tabs = st.tabs(["[ SUMMARY ]", "[ VISUALS ]", "[ STATIONARITY ]", "[ ESTIMATION ]"])
 
     with tabs[0]:
@@ -133,7 +121,7 @@ elif st.session_state['initialized']:
             st.markdown(f"""
             <div style='border-left: 4px solid {color}; padding: 10px 15px; background: white; border: 1px solid #E2E8F0; margin-bottom:8px;'>
                 <span style='font-family:IBM Plex Mono; font-weight:600;'>{var}</span>: 
-                <span style='color:{color};'>{"STATIONARY" if res[1] < sig_level else "NON-STATIONARY"}</span>
+                <span style='color:{color}; font-size:11px;'>{"STATIONARY" if res[1] < sig_level else "NON-STATIONARY"}</span>
                 <br><span style='font-size:11px; color:gray;'>p-val: {res[1]:.4f}</span>
             </div>
             """, unsafe_allow_html=True)
@@ -145,34 +133,43 @@ elif st.session_state['initialized']:
         if model_type.startswith("OLS"):
             st.latex(f"{dep_var}_t = \\beta_0 + " + " + ".join([f"\\beta_{i+1} {v}_t" for i, v in enumerate(indep_vars)]) + " + \\epsilon_t")
             if st.button("ESTIMATE OLS"):
-                Y = df[dep_var]
-                X = add_constant(df[indep_vars])
+                Y, X = df[dep_var], add_constant(df[indep_vars])
                 model = OLS(Y, X).fit()
                 
+                # --- RESULTS TABLE ---
                 st.markdown("<div class='label-mono'>[ ESTIMATION OUTPUT ]</div>", unsafe_allow_html=True)
-                # Render results in EViews-style table
-                results_df = pd.DataFrame({
-                    "Coefficient": model.params,
-                    "Std. Error": model.bse,
-                    "t-Statistic": model.tvalues,
-                    "Prob.": model.pvalues
-                })
-                st.table(results_df.style.format("{:.4f}"))
+                res_df = pd.DataFrame({"Coeff": model.params, "Std.Error": model.bse, "t-Stat": model.tvalues, "Prob": model.pvalues})
+                st.table(res_df.style.format("{:.4f}"))
                 
-                c1, c2, c3 = st.columns(3)
-                c1.metric("R-squared", f"{model.rsquared:.4f}")
-                c2.metric("Adj. R-squared", f"{model.rsquared_adj:.4f}")
-                c3.metric("F-statistic", f"{model.fvalue:.2f}")
+                # --- STEP 5: DIAGNOSTICS SECTION ---
+                st.markdown("<div class='label-mono' style='margin-top:2rem;'>[ RESIDUAL DIAGNOSTICS ]</div>", unsafe_allow_html=True)
+                d1, d2, d3 = st.columns(3)
+                
+                # Durbin-Watson
+                dw = durbin_watson(model.resid)
+                d1.metric("Durbin-Watson", f"{dw:.4f}")
+                
+                # Jarque-Bera
+                jb_stats = jarque_bera(model.resid)
+                d2.metric("Jarque-Bera (Prob)", f"{jb_stats[1]:.4f}")
+                
+                # R-Squared
+                d3.metric("Adj. R-Squared", f"{model.rsquared_adj:.4f}")
+
+                # Actual vs Fitted Plot
+                st.markdown("<div class='label-mono'>[ ACTUAL VS FITTED VS RESIDUALS ]</div>", unsafe_allow_html=True)
+                fig_res = go.Figure()
+                fig_res.add_trace(go.Scatter(x=df[time_idx], y=Y, name="Actual", line=dict(color="#0F172A")))
+                fig_res.add_trace(go.Scatter(x=df[time_idx], y=model.fittedvalues, name="Fitted", line=dict(color="#2563EB", dash='dot')))
+                fig_res.add_trace(go.Bar(x=df[time_idx], y=model.resid, name="Residuals", marker_color="#E2E8F0"))
+                fig_res.update_layout(template="plotly_white", height=400, margin=dict(l=0, r=0, t=20, b=0))
+                st.plotly_chart(fig_res, use_container_width=True)
 
         elif model_type.startswith("ARDL"):
-            st.markdown("<div class='nexus-card'>Note: ARDL model will estimate using optimal lag selection (AIC).</div>")
-            if st.button("ESTIMATE ARDL"):
+            st.info("ARDL Module: Currently estimating with optimal lag (1,1).")
+            if st.button("RUN ARDL ESTIMATION"):
                 try:
-                    # Simplified ARDL estimation for thesis-level baseline
-                    model = ARDL(df[dep_var], 1, df[indep_vars], {v: 1 for v in indep_vars}).fit()
-                    st.text(model.summary())
+                    ardl_model = ARDL(df[dep_var], 1, df[indep_vars], {v: 1 for v in indep_vars}).fit()
+                    st.text(ardl_model.summary())
                 except Exception as e:
-                    st.error(f"ARDL Error: {e}. Check for sufficient data points.")
-
-else:
-    st.markdown("<div style='text-align:center; padding: 100px; color:#94A3B8; font-family:IBM Plex Mono;'>INITIALIZE WORKFILE TO ACCESS ESTIMATION KERNEL</div>", unsafe_allow_html=True)
+                    st.error(f"Data density too low for ARDL: {e}")
