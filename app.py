@@ -5,7 +5,7 @@ import plotly.express as px
 from statsmodels.tsa.stattools import adfuller
 
 # ─────────────────────────────────────────────────────────────────
-# NEXUS DESIGN SYSTEM (Professional & Universal)
+# NEXUS DESIGN SYSTEM
 # ─────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Nexus Econometrics", layout="wide")
 
@@ -49,38 +49,35 @@ with st.sidebar:
     st.markdown("---")
     sig_level = st.selectbox("CONFIDENCE (α)", [0.01, 0.05, 0.10], index=1)
     if st.session_state['initialized']:
-        if st.button("RESET KERNEL"):
+        if st.button("RESET KERNEL", use_container_width=True):
             st.session_state['initialized'] = False
             st.rerun()
 
 # ─────────────────────────────────────────────────────────────────
-# THE UNIVERSAL ENGINE
+# DATA PROCESSING KERNEL
 # ─────────────────────────────────────────────────────────────────
 if uploaded_file:
-    # 1. SMART LOAD: Try to skip messy headers automatically
     try:
+        # 1. Flexible Loader
         if uploaded_file.name.endswith('.csv'):
             df_raw = pd.read_csv(uploaded_file)
         else:
             df_raw = pd.read_excel(uploaded_file)
-        
-        # 2. THE ADAPTIVE CLEANER
-        # Instead of deleting rows immediately, we let the user define the data first
+
         st.markdown("<div class='section-header'>Step 1 & 2: Structural Mapping</div>", unsafe_allow_html=True)
-        
         c_map, c_status = st.columns([2, 1])
 
         with c_map:
-            time_idx = st.selectbox("Select Temporal Axis (Year/Date)", options=df_raw.columns)
+            time_idx = st.selectbox("Select Temporal Axis (Year)", options=df_raw.columns)
             
-            # Identify columns that actually have numbers
-            # We do this dynamically so it doesn't break on new files
+            # Smart Variable Detection (Robust Numeric Check)
             numeric_cols = []
             for col in df_raw.columns:
                 if col != time_idx:
-                    # If at least 30% of the column is numeric, we count it as a variable
-                    temp_num = pd.to_numeric(df_raw[col], errors='coerce')
-                    if temp_num.notna().sum() > (len(df_raw) * 0.01): # Flexible threshold
+                    # Try to clean strings like "1,200" or "$50"
+                    series_clean = df_raw[col].astype(str).str.replace(r'[$,%]', '', regex=True)
+                    temp_num = pd.to_numeric(series_clean, errors='coerce')
+                    if temp_num.notna().sum() > 0:
                         numeric_cols.append(col)
             
             dep_var = st.selectbox("Assign Target Variable (Y)", options=numeric_cols)
@@ -88,16 +85,18 @@ if uploaded_file:
 
         with c_status:
             st.markdown("<br>", unsafe_allow_html=True)
-            if time_idx and dep_var and indep_vars:
-                # 3. FINAL VALIDATION (The "Just-in-Time" Cleaner)
-                # Now we clean ONLY the columns the user selected
+            if time_idx and dep_var and len(indep_vars) > 0:
+                # 2. Strict Convergence Cleaning
                 analysis_cols = [time_idx, dep_var] + indep_vars
                 df = df_raw[analysis_cols].copy()
                 
+                # Robust Conversion
                 for col in analysis_cols:
+                    if df[col].dtype == 'object':
+                        df[col] = df[col].astype(str).str.replace(r'[$,%]', '', regex=True)
                     df[col] = pd.to_numeric(df[col], errors='coerce')
                 
-                # The "Ghost Killer" only acts on the selected data points now
+                # Drop rows where ANY of the selected variables are missing
                 df = df.dropna().sort_values(by=time_idx)
                 
                 if not df.empty:
@@ -105,7 +104,7 @@ if uploaded_file:
                     <div style='background: #F0FDF4; border: 1px solid #BBF7D0; padding: 1.5rem; border-radius: 4px;'>
                         <div style='color: #166534; font-size: 11px; font-weight: 600; font-family: IBM Plex Mono;'>[ READY ]</div>
                         <div style='color: #166534; font-size: 12px; margin-top:5px;'>
-                            Obs: {len(df)} Points<br>
+                            Converged Sample: {len(df)} Years<br>
                             Span: {int(df[time_idx].min())} - {int(df[time_idx].max())}
                         </div>
                     </div>
@@ -114,23 +113,23 @@ if uploaded_file:
                         st.session_state['initialized'] = True
                         st.rerun()
                 else:
-                    st.warning("⚠️ Selected columns do not have overlapping data.")
+                    # DEBUGGER VIEW: Tell the user WHY it's empty
+                    st.error("⚠️ DATA CONVERGENCE FAILED")
+                    st.write("The selected variables do not share any common years. Check counts below:")
+                    # Show a small table of available data points per variable
+                    avail = df_raw[analysis_cols].notna().sum()
+                    st.dataframe(avail.rename("Available Points"))
             else:
-                st.markdown("""
-                <div style='background: #FEFCE8; border: 1px solid #FEF08A; padding: 1.5rem; border-radius: 4px;'>
-                    <div style='color: #854D0E; font-size: 11px; font-weight: 600; font-family: IBM Plex Mono;'>[ PENDING ]</div>
-                    <div style='color: #854D0E; font-size: 12px; margin-top:5px;'>Map all variables to begin.</div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown("<div style='background: #FEFCE8; border: 1px solid #FEF08A; padding: 1.5rem; border-radius: 4px; color: #854D0E; font-size: 12px;'>Map all variables to begin.</div>", unsafe_allow_html=True)
 
-        # 4. STEP 3: THE ANALYTICS HUB
+        # 3. Step 3: Analysis Tabs
         if st.session_state['initialized']:
-            st.markdown("<div class='section-header'>Step 3: Intelligence Modules</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-header'>Step 3: Exploratory Intelligence</div>", unsafe_allow_html=True)
             t1, t2 = st.tabs(["[ VISUAL PULSE ]", "[ STATIONARITY AUDIT ]"])
             
             with t1:
                 fig = px.line(df, x=time_idx, y=[dep_var] + indep_vars, template="plotly_white")
-                fig.update_layout(font_family="Inter", hovermode="x unified")
+                fig.update_layout(font_family="Inter", hovermode="x unified", legend=dict(orientation="h", y=1.1))
                 st.plotly_chart(fig, use_container_width=True)
 
             with t2:
@@ -146,7 +145,6 @@ if uploaded_file:
                     </div>
                     """, unsafe_allow_html=True)
     except Exception as e:
-        st.error(f"Critical System Error: {e}")
-
+        st.error(f"Kernel Initialization Error: {e}")
 else:
-    st.markdown("<div style='text-align:center; padding: 5rem; color: #94A3B8; font-family: IBM Plex Mono;'>AWAITING UNIVERSAL DATA INPUT...</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; padding: 5rem; color: #94A3B8; font-family: IBM Plex Mono;'>AWAITING DATASET...</div>", unsafe_allow_html=True)
