@@ -204,13 +204,46 @@ elif st.session_state['initialized']:
                 st.session_state['model_res'] = model
                 st.text(model.summary())
 
-        # Universal Result Display
+# --- UNIVERSAL RESULT DISPLAY (INDICATOR BLOCK) ---
         if 'model_res' in st.session_state:
             res = st.session_state['model_res']
             st.markdown("<div class='label-mono'>[ ESTIMATION OUTPUT ]</div>", unsafe_allow_html=True)
+            
+            # 1. COEFFICIENT TABLE
             if hasattr(res, 'params') and method != "VAR":
-                out_df = pd.DataFrame({"Coef.": res.params, "Std.Err": res.bse, "t-Stat": res.tvalues, "Prob.": res.pvalues})
+                out_df = pd.DataFrame({
+                    "Coefficient": res.params,
+                    "Std. Error": res.bse,
+                    "t-Statistic": res.tvalues,
+                    "Prob.": res.pvalues
+                })
                 st.table(out_df.style.format("{:.4f}"))
+
+                # 2. THE INDICATOR BLOCK (The "Bottom Summary")
+                st.markdown("<div class='label-mono'>[ GOODNESS OF FIT & CRITERIA ]</div>", unsafe_allow_html=True)
+                
+                # We split these into two logical columns for clarity
+                sum_c1, sum_c2 = st.columns(2)
+                
+                with sum_c1:
+                    st.write(f"**R-squared:** {res.rsquared:.6f}")
+                    st.write(f"**Adjusted R-squared:** {res.rsquared_adj:.6f}")
+                    st.write(f"**S.E. of regression:** {np.sqrt(res.mse_resid):.6f}")
+                    st.write(f"**Sum squared resid:** {res.ssr:.6f}")
+                    st.write(f"**Log likelihood:** {res.llf:.4f}")
+
+                with sum_c2:
+                    st.write(f"**F-statistic:** {res.fvalue:.4f}")
+                    st.write(f"**Prob(F-statistic):** {res.f_pvalue:.6f}")
+                    st.write(f"**Akaike info criterion (AIC):** {res.aic:.4f}")
+                    st.write(f"**Schwarz criterion (BIC):** {res.bic:.4f}")
+                    st.write(f"**Hannan-Quinn criter.:** {res.hqic:.4f}")
+
+            # Special case for VAR summary
+            elif method == "VAR":
+                st.markdown("<div class='eviews-box'>")
+                st.text(res.summary())
+                st.markdown("</div>", unsafe_allow_html=True)
 
     with tabs[4]:
         if 'model_res' in st.session_state:
