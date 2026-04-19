@@ -5,14 +5,13 @@ import plotly.express as px
 from statsmodels.tsa.stattools import adfuller
 
 # ─────────────────────────────────────────────────────────────────
-# NEXUS DESIGN SYSTEM
+# NEXUS PROFESSIONAL DESIGN SYSTEM (Workspace Edition)
 # ─────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Nexus Econometrics", layout="wide")
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
     :root {
         --nexus-bg: #F8FAFC;
         --nexus-sidebar: #0F172A;
@@ -20,132 +19,132 @@ st.markdown("""
         --nexus-text: #1E293B;
         --nexus-border: #E2E8F0;
     }
-
     .stApp { background-color: var(--nexus-bg); color: var(--nexus-text); font-family: 'Inter', sans-serif; }
-
-    .section-header {
-        font-family: 'IBM Plex Mono', monospace;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        color: #64748B;
-        margin: 2rem 0 1rem 0;
-        border-bottom: 1px solid var(--nexus-border);
-        padding-bottom: 5px;
+    
+    /* Workspace Tab Styling (EViews Style) */
+    .stTabs [data-baseweb="tab-list"] { gap: 40px; border-bottom: 2px solid var(--nexus-border); }
+    .stTabs [data-baseweb="tab"] { 
+        font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500;
+        color: #64748B !important; padding-bottom: 10px;
     }
+    .stTabs [aria-selected="true"] { color: var(--nexus-accent) !important; border-bottom: 2px solid var(--nexus-accent) !important; }
 
-    .data-card {
-        background: white;
-        border: 1px solid var(--nexus-border);
-        padding: 1.5rem;
-        border-radius: 4px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    /* Clean Card */
+    .nexus-card {
+        background: white; border: 1px solid var(--nexus-border);
+        padding: 1.5rem; border-radius: 2px; margin-bottom: 1rem;
     }
-    .card-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; color: #94A3B8; margin-bottom: 8px; }
-    .card-value { font-size: 24px; font-weight: 600; color: #0F172A; }
-
-    [data-testid="stSidebar"] { background-color: var(--nexus-sidebar) !important; }
-    [data-testid="stSidebar"] * { color: #94A3B8 !important; }
+    .label-mono { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; color: #94A3B8; }
 </style>
 """, unsafe_allow_html=True)
 
-# TOP NAVIGATION
-st.markdown("""
-<div style='padding: 1.5rem 0; border-bottom: 1px solid #E2E8F0; margin-bottom: 2rem;'>
-    <div style='font-size: 20px; font-weight: 700; color: #0F172A;'>NEXUS <span style='font-weight:300; color:#64748B;'>ECONOMETRICS</span></div>
-</div>
-""", unsafe_allow_html=True)
-
-# SESSION STATE
+# ── SESSION STATE ──
 if 'initialized' not in st.session_state:
     st.session_state['initialized'] = False
 
 # ─────────────────────────────────────────────────────────────────
-# SIDEBAR: INGESTION (Step 1)
+# SIDEBAR: PROJECT CONTROL
 # ─────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("<br><div style='font-family:IBM Plex Mono; font-size:11px;'>[ 01 ] INGESTION</div>", unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("UPLOAD RESEARCH DATASET", type=["csv", "xlsx"])
+    st.markdown("<br><div style='font-family:IBM Plex Mono; font-size:11px; color:#94A3B8;'>[ WORKFILE CONTROL ]</div>", unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("LOAD DATASET", type=["csv", "xlsx"])
     st.markdown("---")
-    sig_level = st.selectbox("CONFIDENCE LEVEL (α)", [0.01, 0.05, 0.10], index=1)
+    sig_level = st.selectbox("SIGNIFICANCE (α)", [0.01, 0.05, 0.10], index=1)
     
     if st.session_state['initialized']:
-        if st.button("RESET KERNEL", use_container_width=True):
+        if st.button("CLOSE WORKFILE", use_container_width=True):
             st.session_state['initialized'] = False
             st.rerun()
 
 # ─────────────────────────────────────────────────────────────────
 # MAIN WORKSPACE
 # ─────────────────────────────────────────────────────────────────
-if uploaded_file:
-    # 1. LOAD & CLEAN
+if uploaded_file and not st.session_state['initialized']:
+    # ── PHASE 1: WORKFILE SETUP (Mapping) ──
     if uploaded_file.name.endswith('.csv'):
         df_raw = pd.read_csv(uploaded_file)
     else:
         df_raw = pd.read_excel(uploaded_file)
-    
-    # Force Numeric for all (Fixes GDP/FDI blindness)
+
     for col in df_raw.columns:
         df_raw[col] = pd.to_numeric(df_raw[col], errors='coerce')
 
-    # 2. MAPPING WIZARD (Step 2)
-    st.markdown("<div class='section-header'>Step 1 & 2: Data Integrity & Mapping</div>", unsafe_allow_html=True)
+    st.markdown("### Workfile Initialization")
+    st.write("Map the temporal anchor and variable roles to build the research kernel.")
     
-    col_map, col_status = st.columns([2, 1])
-
-    with col_map:
-        time_idx = st.selectbox("Assign Temporal Anchor (Year)", options=df_raw.columns)
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        time_idx = st.selectbox("Assign Temporal Anchor (Date/Year)", options=df_raw.columns)
         
-        # GHOST KILLER: Clean based on chosen Year column
+        # Smart Clean
         df = df_raw.dropna(subset=[time_idx]).copy()
-        df = df[df[time_idx] > 1900].sort_values(by=time_idx)
+        df = df.sort_values(by=time_idx)
         
         potential_vars = [c for c in df.columns if c != time_idx]
-        dep_var = st.selectbox("Assign Target Variable (Y)", options=potential_vars)
-        indep_vars = st.multiselect("Assign Regressors (X)", options=[v for v in potential_vars if v != dep_var])
-
-    with col_status:
-        st.markdown("<br>", unsafe_allow_html=True)
+        dep_var = st.selectbox("Dependent Variable (Y)", options=potential_vars)
+        indep_vars = st.multiselect("Independent Variables (X)", options=[v for v in potential_vars if v != dep_var])
+        
+    with c2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
         if time_idx and dep_var and len(indep_vars) > 0:
             st.markdown(f"""
-            <div style='background: #F0FDF4; border: 1px solid #BBF7D0; padding: 1.5rem; border-radius: 4px;'>
-                <div style='color: #166534; font-size: 11px; font-weight: 600; font-family: IBM Plex Mono;'>[ SYSTEM READY ]</div>
-                <div style='color: #166534; font-size: 12px; margin-top:5px;'>
-                    Sample: {int(df[time_idx].min())} - {int(df[time_idx].max())}<br>
-                    Observations: {len(df)} Years
-                </div>
+            <div class="nexus-card">
+                <div class="label-mono">Status: Ready</div>
+                <div style="font-size:20px; font-weight:600;">{len(df)} Observations</div>
+                <div style="font-size:12px; color:#64748B;">{int(df[time_idx].min())} to {int(df[time_idx].max())}</div>
             </div>
             """, unsafe_allow_html=True)
-            if st.button("INITIALIZE RESEARCH KERNEL", use_container_width=True):
-                st.session_state['initialized'] = True
+            if st.button("OPEN WORKFILE", use_container_width=True):
+                st.session_state.update({"initialized": True, "df": df, "time": time_idx, "y": dep_var, "x": indep_vars})
+                st.rerun()
         else:
-            st.markdown("<div style='background: #FEFCE8; border: 1px solid #FEF08A; padding: 1.5rem; border-radius: 4px; color: #854D0E; font-size: 12px;'>Map temporal and analysis variables to unlock.</div>", unsafe_allow_html=True)
+            st.warning("Awaiting full variable mapping...")
 
-    # 3. ANALYSIS KERNEL (Step 3)
-    if st.session_state['initialized']:
-        st.markdown("<div class='section-header'>Step 3: Exploratory Intelligence</div>", unsafe_allow_html=True)
-        t_viz, t_audit = st.tabs(["[ VISUAL CONVERGENCE ]", "[ STATIONARITY AUDIT ]"])
-        
-        with t_viz:
-            plot_vars = [dep_var] + indep_vars
-            fig = px.line(df, x=time_idx, y=plot_vars, template="plotly_white",
-                          color_discrete_sequence=["#2563EB", "#10B981", "#F59E0B", "#EF4444"])
-            fig.update_layout(font_family="Inter", hovermode="x unified", legend=dict(orientation="h", y=1.1))
-            st.plotly_chart(fig, use_container_width=True)
+elif st.session_state['initialized']:
+    # ── PHASE 2: THE RESEARCH KERNEL (Analysis) ──
+    df = st.session_state['df']
+    time_idx = st.session_state['time']
+    dep_var = st.session_state['y']
+    indep_vars = st.session_state['x']
+    
+    st.markdown(f"### Workspace: {dep_var} Analysis")
+    st.markdown(f"<div style='font-size:12px; color:#64748B; margin-bottom:20px;'>{len(df)} Observations | {time_idx} index active</div>", unsafe_allow_html=True)
 
-        with t_audit:
-            st.markdown("#### Stationarity Assessment (ADF)")
-            for var in [dep_var] + indep_vars:
-                series = df[var].dropna()
-                res = adfuller(series)
-                is_stat = res[1] < sig_level
-                color = "#10B981" if is_stat else "#F59E0B"
-                st.markdown(f"""
-                <div style='border-left: 5px solid {color}; padding: 1rem; background: white; margin-bottom: 10px; border: 1px solid #E2E8F0;'>
-                    <span style='font-family:IBM Plex Mono; font-weight:600;'>{var}</span>: 
-                    <span style='color:{color}; font-weight:600;'>{"STATIONARY" if is_stat else "NON-STATIONARY"}</span><br>
-                    <span style='font-size: 11px; color: gray;'>p-value: {res[1]:.4f} | Stat: {res[0]:.4f}</span>
-                </div>
-                """, unsafe_allow_html=True)
+    # EViews-Style Navigation Menu
+    tabs = st.tabs(["[ SUMMARY ]", "[ VISUALS ]", "[ STATIONARITY ]", "[ CORRELATIONS ]"])
+
+    with tabs[0]:
+        st.markdown("<div style='font-family:IBM Plex Mono; font-size:11px; margin-bottom:10px;'>[ DESCRIPTIVE STATISTICS ]</div>", unsafe_allow_html=True)
+        stats = df[[dep_var] + indep_vars].describe().T
+        # Add Kurtosis and Skewness for the senior econometrician
+        stats['skew'] = df[[dep_var] + indep_vars].skew()
+        stats['kurtosis'] = df[[dep_var] + indep_vars].kurtosis()
+        st.dataframe(stats.style.format("{:.4f}"), use_container_width=True)
+
+    with tabs[1]:
+        st.markdown("<div style='font-family:IBM Plex Mono; font-size:11px; margin-bottom:10px;'>[ GRAPHICAL VIEW ]</div>", unsafe_allow_html=True)
+        fig = px.line(df, x=time_idx, y=[dep_var] + indep_vars, template="plotly_white")
+        fig.update_layout(font_family="Inter", hovermode="x unified", legend=dict(orientation="h", y=1.1))
+        st.plotly_chart(fig, use_container_width=True)
+
+    with tabs[2]:
+        st.markdown("<div style='font-family:IBM Plex Mono; font-size:11px; margin-bottom:10px;'>[ UNIT ROOT AUDIT ]</div>", unsafe_allow_html=True)
+        for var in [dep_var] + indep_vars:
+            res = adfuller(df[var].dropna())
+            is_stat = res[1] < sig_level
+            color = "#10B981" if is_stat else "#F59E0B"
+            st.markdown(f"""
+            <div style='border-left: 4px solid {color}; padding: 10px 15px; background: white; border: 1px solid #E2E8F0; border-left: 4px solid {color}; margin-bottom:8px;'>
+                <span style='font-family:IBM Plex Mono; font-weight:600; font-size:13px;'>{var}</span>: 
+                <span style='color:{color}; font-weight:600; font-size:11px;'>{"STATIONARY" if is_stat else "NON-STATIONARY"}</span>
+                <br><span style='font-size:11px; color:gray;'>p-val: {res[1]:.4f} | ADF Stat: {res[0]:.4f}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with tabs[3]:
+        st.markdown("<div style='font-family:IBM Plex Mono; font-size:11px; margin-bottom:10px;'>[ CORRELATION MATRIX ]</div>", unsafe_allow_html=True)
+        corr = df[[dep_var] + indep_vars].corr()
+        st.dataframe(corr.style.background_gradient(cmap='RdBu_r').format("{:.4f}"), use_container_width=True)
+
 else:
-    st.markdown("<div style='text-align:center; padding: 5rem; color: #94A3B8; font-family:IBM Plex Mono;'>AWAITING DATASET INPUT...</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; padding: 100px; color:#94A3B8; font-family:IBM Plex Mono;'>LOAD RESEARCH DATASET TO INITIALIZE WORKFILE</div>", unsafe_allow_html=True)
