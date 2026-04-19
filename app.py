@@ -104,6 +104,14 @@ if 'initialized' not in st.session_state:
 # SIDEBAR
 # ─────────────────────────────────────────────────────────────────
 with st.sidebar:
+    # THE PROFESSIONAL SIGNATURE
+    st.markdown(f"""
+    <div style='padding: 1rem 0; border-bottom: 1px solid #1E293B; margin-bottom: 2rem;'>
+        <div style='font-size: 16px; font-weight: 700; color: #F8FAFC !important; letter-spacing: 1px;'>NEXUS KERNEL</div>
+        <div style='font-size: 10px; color: #64748B !important; font-family: IBM Plex Mono;'>RESEARCH BY:</div>
+        <div style='font-size: 12px; font-weight: 500; color: #38BDF8 !important; font-family: IBM Plex Mono;'>AHMED HISHAM</div>
+    </div>
+    """, unsafe_allow_html=True)
     st.markdown("<br><div class='label-mono'>[ WORKFILE CONTROL ]</div>", unsafe_allow_html=True)
     uploaded_file = st.file_uploader("LOAD DATASET", type=["csv", "xlsx"])
     st.markdown("---")
