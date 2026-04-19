@@ -77,107 +77,43 @@ from statsmodels.tools.tools import add_constant
 st.set_page_config(page_title="Nexus Econometrics", layout="wide")
 
 st.markdown("""
-# ─────────────────────────────────────────────────────────────────
-# COMPONENT 1: THE NEXUS FINGERPRINT (Custom CSS)
-# ─────────────────────────────────────────────────────────────────
-st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
     :root {
-        --nexus-bg: #F1F5F9;          /* Quartz Grey - Clean & Open */
-        --nexus-sidebar: #0F172A;      /* Midnight Navy - The Fingerprint */
-        --nexus-accent: #334155;       /* Steel Blue - Industrial */
-        --nexus-highlight: #2563EB;    /* Electric Blue - Action */
+        --nexus-bg: #F8FAFC;
+        --nexus-sidebar: #0F172A;
+        --nexus-accent: #2563EB;
         --nexus-text: #1E293B;
+        --nexus-border: #E2E8F0;
     }
-
-    /* Main App Background */
-    .stApp { 
-        background-color: var(--nexus-bg); 
-        color: var(--nexus-text); 
-        font-family: 'Inter', sans-serif; 
-    }
-
-    /* Sidebar - The Power Center */
-    [data-testid="stSidebar"] { 
-        background-color: var(--nexus-sidebar) !important; 
-        border-right: 1px solid #1E293B;
-    }
+    .stApp { background-color: var(--nexus-bg); color: var(--nexus-text); font-family: 'Inter', sans-serif; }
     
-    /* Sidebar Text & Icons */
-    [data-testid="stSidebar"] * { 
-        color: #94A3B8 !important; 
-        font-family: 'IBM Plex Mono', monospace;
-    }
-
-    /* Tabs - Professional Navigation */
-    .stTabs [data-baseweb="tab-list"] { 
-        gap: 30px; 
-        border-bottom: 2px solid #CBD5E1; 
-        background: transparent;
-    }
-    .stTabs [data-baseweb="tab"] { 
-        font-family: 'IBM Plex Mono', monospace; 
-        font-size: 11px; 
-        font-weight: 500;
-        color: #64748B !important; 
-        padding: 10px 0;
-    }
-    .stTabs [aria-selected="true"] { 
-        color: var(--nexus-highlight) !important; 
-        border-bottom: 2px solid var(--nexus-highlight) !important; 
-    }
-
-    /* Industrial Cards */
-    .nexus-card { 
-        background: white; 
-        border: 1px solid #E2E8F0; 
-        padding: 1.5rem; 
-        border-radius: 2px; 
-        box-shadow: 4px 4px 0px 0px rgba(15, 23, 42, 0.05); /* Brutalist Shadow */
-        margin-bottom: 1rem; 
-    }
-
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: var(--nexus-bg); }
-    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
-
+    .stTabs [data-baseweb="tab-list"] { gap: 30px; border-bottom: 2px solid var(--nexus-border); }
+    .stTabs [data-baseweb="tab"] { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #64748B !important; }
+    .stTabs [aria-selected="true"] { color: var(--nexus-accent) !important; border-bottom: 2px solid var(--nexus-accent) !important; }
+    
+    .nexus-card { background: white; border: 1px solid var(--nexus-border); padding: 1.2rem; border-radius: 2px; margin-bottom: 1rem; }
+    .label-mono { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; color: #94A3B8; }
 </style>
 """, unsafe_allow_html=True)
 
+if 'initialized' not in st.session_state:
+    st.session_state['initialized'] = False
+
 # ─────────────────────────────────────────────────────────────────
-# SIDEBAR: THE COMMAND CENTER
+# SIDEBAR
 # ─────────────────────────────────────────────────────────────────
 with st.sidebar:
-    # THE FINGERPRINT: Personalized Signature
-    st.markdown(f"""
-    <div style='padding: 1rem 0; border-bottom: 1px solid #1E293B; margin-bottom: 2rem;'>
-        <div style='font-size: 16px; font-weight: 700; color: #F8FAFC !important; letter-spacing: 1px;'>NEXUS KERNEL</div>
-        <div style='font-size: 10px; color: #64748B !important; font-family: IBM Plex Mono;'>RESEARCH BY:</div>
-        <div style='font-size: 12px; font-weight: 500; color: #38BDF8 !important; font-family: IBM Plex Mono;'>AHMED HISHAM</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("<div style='font-family:IBM Plex Mono; font-size:10px;'>[ 01 ] INGESTION</div>", unsafe_allow_html=True)
+    st.markdown("<br><div class='label-mono'>[ WORKFILE CONTROL ]</div>", unsafe_allow_html=True)
     uploaded_file = st.file_uploader("LOAD DATASET", type=["csv", "xlsx"])
-    
     st.markdown("---")
+    sig_level = st.selectbox("SIGNIFICANCE (α)", [0.01, 0.05, 0.10], index=1)
     
-    # We add a quick "Status" indicator
     if st.session_state['initialized']:
-        st.markdown(f"""
-        <div style='background: #1E293B; padding: 10px; border-radius: 2px; border: 1px solid #334155;'>
-            <div style='font-size: 9px; color: #64748B;'>KERNEL STATUS:</div>
-            <div style='font-size: 11px; color: #10B981;'>ACTIVE INTERFACE</div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
         if st.button("CLOSE WORKFILE", use_container_width=True):
             st.session_state['initialized'] = False
             st.rerun()
+
 # ─────────────────────────────────────────────────────────────────
 # WORKSPACE LOGIC
 # ─────────────────────────────────────────────────────────────────
