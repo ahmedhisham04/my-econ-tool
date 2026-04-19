@@ -2,8 +2,9 @@ streamlit
 pandas
 numpy
 statsmodels
-plotly
 scipy
-openpyxl
+arch
 pmdarima
-matplotlib
+plotly
+reportlab
+openpyxl
